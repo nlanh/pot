@@ -2,13 +2,18 @@
       
       implicit real*8(a-h,o-z)
       dimension vn(1000), vc(1000)
-      common/ppot/ v0,a,r0,rc0,nz,na
+      common/ppot/ v0,a,r0,rc0,nz,na,q
       
-      open(unit = 1, file = 'pot_huy.out')
+      open(unit = 1, file = 'central_pot.out')
       open(unit = 2, file = 'pot.out')
-      open( unit = 3, file = 'cpot.out')
+      open( unit = 3, file = 'coulomb_pot.out')
       print*, 'Which type of potential do you choose?'
-      print*, '[1=squared; 2=harmonic; 3=Gaussian; 4=Woods-Xason]'
+      print*, '[1] Squared potential V(x) = -V0 with 0 <= x <= a'
+      print*, '[2] Parabolic potential V(x) = -V0 + ax^2 < 0'
+      print*, '[3] Gaussian potential V(x) = -V0*exp(-ax^2) <0'
+      print*, '[4] Woods-Saxon potential V(x) = -V0/(1+exp((x-x0)/a))'
+      
+      
       read*, kpot
       print*, 'The largest distance of rmax ='
       read*, rmax
@@ -32,13 +37,12 @@
        read*, v0
        print*, 'The width of potential a ='
        read*, a
-       print*, 'r (fm)               V(MeV)'
+       write(1,1001) 'descriptor r', 'Vcentral'
        do i = 1, n
         r = i*h
         v = vsquare(r)
         vn(i) = v
-        print*, r, v
-        write(1,*) r, v
+        write(1,1002) r, v
        end do
        call simpson(vsquare,0.d0,rmax,tp,n)
        write(1,*) 'Potential volume =', tp
@@ -51,13 +55,12 @@
        read*, v0
        print*, 'a ='
        read*, a
-       print*, 'r (fm)               V(MeV)'
+       write(1,1001) 'descriptor r', 'Vcentral'
        do i = 1, n
          r = i*h
          v = vpara(r)
          vn(i) = v
-       print*, r, v
-       write(1,*) r, v
+       write(1,1002) r, v
        end do
        call simpson(vpara,0.d0,rmax,tp,n)
        write(1,*) 'Potential volume =', tp
@@ -70,36 +73,56 @@
        read*, v0
        print*, 'a='
        read*, a
-       print*, 'r (fm)               V(MeV)'
+       write(1,1001) 'descriptor r', 'Vcentral'
        do i = 1, n
         r = i*h
         v = vgauss(r)
         vn(i) = v
-        print*, r, v
-        write(1,*) r, v
+        write(1,1002) r, v
        end do
        call simpson(vgauss,0.d0,rmax,tp,n)
        write(1,*) 'Potential volume =', tp
       end if
       
-!Woods-saxon potential
+!Woods-Saxon potential
       if(kpot.eq.4) then
-       print*, 'The Woods-saxon potential V(x) = -V0/(1+exp((x-x0)/a)) '
+       print*, 'The Woods-Saxon potential V(x) = -V0/(1+exp((x-x0)/a)) '
        print*, 'The depth of potential V0='
        read*, v0
        print*, 'a='
        read*, a
        print*, 'x0='
        read*, r0
-       print*, 'r (fm)               V(MeV)'
+       write(1,1001) 'descriptor r', 'Vcentral'
        do i = 1, n
         r = i*h
         v = vws(r)
         vn(i) = v
-        print*, r, v
-        write(1,*) r, v
+        write(1,1002) r, v
        end do
        call simpson(vws,0.d0,rmax,tp,n)
+       write(1,*) 'Potential volume =', tp
+      end if
+
+!Modified Woods-Saxon potential
+      if(kpot.eq.5) then
+       print*, 'Modified WS potential V(x) = -V0/(1+q*exp((x-x0)/a))'
+       print*, 'The depth of potential V0='
+       read*, v0
+       print*, 'a='
+       read*, a
+       print*, 'x0='
+       read*, r0
+       print*, 'q='
+       read*, q
+       write(1,1001) 'descriptor r', 'Vcentral'
+       do i = 1, n
+        r = i*h
+        v = vmws(r)
+        vn(i) = v
+        write(1,1002) r, v
+       end do
+       call simpson(vmws,0.d0,rmax,tp,n)
        write(1,*) 'Potential volume =', tp
       end if
       
@@ -107,13 +130,12 @@
       
 !Compute coulomb
 
-      print*, ' r(fm)       V(MeV)'
+      write(3,1001) 'descriptor r', 'Vcoul'
        do i = 1, n
         r = i*h
         v1 = vcou(r)
         vc(i) = v1
-        print*, r, vcou(r)
-       write(3,*) r,v1
+       write(3,1002) r,v1
       end do
       call simpson(vcou,0.d0,rmax,tp,n)
       write(3,*) 'Potential volume =' , tp
@@ -122,13 +144,17 @@
       write(2,*) 'COULOMB POTENTIALS'
       write(2,*) ' '
       write(2,'(10E14.7)')(vc(i),i=1,n)
+      
+!Format
+ 1001 format(A15,A15)
+ 1002 format(F15.3,E15.5)
 
       end program
 
 !Squared potential
       function vsquare(x)
       implicit real*8(a-h,o-z)
-      common/ppot/ v0,a,r0,rc0,nz,na
+      common/ppot/ v0,a,r0,rc0,nz,na,q
       if (x.ge.0.and.x.le.a.or.x.eq.0.or.x.eq.a) then
        vsquare = -v0
       else 
@@ -139,7 +165,7 @@
 !Parabolic potential
       function vpara(x)
       implicit real*8(a-h,o-z)
-      common/ppot/ v0,a,r0,rc0,nz,na
+      common/ppot/ v0,a,r0,rc0,nz,na,q
       xmax = sqrt(v0/a)
       if (x.ge.0.and.x.le.xmax.or.x.eq.0.or.x.eq.xmax) then
        vpara = -v0 + a*x**2
@@ -151,21 +177,28 @@
 !Gaussian potential  
       function vgauss(x)
       implicit real*8 (a-h,o-z)
-      common/ppot/ v0,a,r0,rc0,nz,na
+      common/ppot/ v0,a,r0,rc0,nz,na,q
       vgauss = -v0*exp(-a*x**2)
       end function
       
-!Woods-saxon potential
+!Woods-Saxon potential
       function vws(x)
       implicit real*8 (a-h,o-z)
-      common/ppot/ v0,a,r0,rc0,nz,na
+      common/ppot/ v0,a,r0,rc0,nz,na,q
       vws = -v0/((1+exp((x-r0)/a)))
+      end function
+      
+!Modified Woods-Saxon potential
+      function vmws(x)
+      implicit real*8 (a-h,o-z)
+      common/ppot/ v0,a,r0,rc0,nz,na,q
+      vmws = -v0/((1+q*exp((x-r0)/a)))
       end function
       
 !Coulomb potential    
       function  vcou(r)
       implicit real*8 (a-h,o-z)
-      common/ppot/ v0,a,r0,rc0,nz,na
+      common/ppot/ v0,a,r0,rc0,nz,na,q
       rc = rc0*dfloat(na)**(1.d0/3.d0)
       if (r.ge.rc)  then
        vcou = (dfloat(nz)*1.44)/r
