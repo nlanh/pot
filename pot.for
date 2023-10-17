@@ -28,7 +28,9 @@
 !Number of points
       n = int(rmax/h)              
       
-      write(2,*) 'NUCLEAR CENTRAL POTENTIALS'
+      write(2,*) 'Format for HFRC'
+      write(2,*) ' '
+      write(2,*) 'Nuclear central potentials'
       write(2,*) ' '
 !Squared potential
       if (kpot.eq.1) then
@@ -141,13 +143,30 @@
       write(3,*) 'Potential volume =' , tp
       
 !Write Coulomb
-      write(2,*) 'COULOMB POTENTIALS'
+      write(2,*) 'Coulomb potential'
       write(2,*) ' '
       write(2,'(10E14.7)')(vc(i),i=1,n)
+
+!Ecis format      
+      write(2,*) ' '
+      write(2,*) '*****************'
+      write(2,*) 'Format for ECIS06'
+      write(2,*) ' '
+      write(2,*) 'Nuclear central potentials'
+      write(2,*) ' '
+      write(2,2001)(i*h,vn(i),i=1,n-2)         
+      write(2,2002)(i*h,vn(i),i=n-1,n)
+      write(2,*) ' '
+      write(2,*) 'Nuclear + Coulomb central potentials'
+      write(2,*) ' '
+      write(2,2001)(i*h,vn(i)+vc(i),i=1,n-2)         
+      write(2,2002)(i*h,vn(i)+vc(i),i=n-1,n)             
       
 !Format
  1001 format(A15,A15)
  1002 format(F15.3,E15.5)
+ 2001 format(2(F10.5,F20.10))
+ 2002 format(2(F10.5,F20.10),'LAST')
 
       end program
 
