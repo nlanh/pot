@@ -143,6 +143,7 @@
       write(3,*) 'Potential volume =' , tp
       
 !Write Coulomb
+      write(2,*) ' '
       write(2,*) 'Coulomb potential'
       write(2,*) ' '
       write(2,'(10E14.7)')(vc(i),i=1,n)
