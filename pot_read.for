@@ -10,7 +10,6 @@
       print*, h,e0,rmax
        do i = 1, n
         read(1,*) rn(i), vn(i)
-        print*, rn(i), vn(i)
        end do
        write(2,'(10E14.7)')(vn(i),i=1,n)
 
